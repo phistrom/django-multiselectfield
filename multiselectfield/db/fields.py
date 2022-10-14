@@ -20,7 +20,7 @@ from django import VERSION
 
 from django.db import models
 from django.utils.text import capfirst
-from django.core import exceptions
+from django.core import exceptions, validators
 
 from ..forms.fields import MultiSelectFormField, MinChoicesValidator, MaxChoicesValidator
 from ..utils import MSFList, get_max_length
@@ -55,7 +55,11 @@ class MultiSelectField(models.CharField):
         kwargs['max_length'] = get_max_length(kwargs.get('choices'),
                                               kwargs.get('max_length'))
         super(MultiSelectField, self).__init__(*args, **kwargs)
-        self.validators[0] = MaxValueMultiFieldValidator(self.max_length)
+        # replace MaxLengthValidator(s) with MaxValueMultiFieldValidators
+        for idx, validator in enumerate(self.validators):
+            if type(validator) == validators.MaxLengthValidator:
+                self.validators[idx] = MaxValueMultiFieldValidator(self.max_length)
+                break
         if self.min_choices is not None:
             self.validators.append(MinChoicesValidator(self.min_choices))
         if self.max_choices is not None:
